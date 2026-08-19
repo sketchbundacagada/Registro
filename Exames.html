@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Registro de Exame</title>
+<style>
+  :root{
+    --bg:#0a0a0c;
+    --card:#151518;
+    --card2:#1d1d21;
+    --border:#2a2a2e;
+    --text:#e8e8ea;
+    --muted:#8a8a90;
+    --accent:#2dd4a7;
+    --accent-dark:#1a8f70;
+    --danger:#e5484d;
+    --warn:#e5a04d;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-user-select:none; user-select:none;
+  }
+  body{padding:14px 14px 40px; min-height:100vh;}
+  h1{font-size:16px; font-weight:600; color:var(--muted); text-align:center; margin:4px 0 16px; letter-spacing:.5px; text-transform:uppercase;}
+
+  .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-bottom:12px;}
+  .label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; margin-bottom:8px; display:block;}
+
+  /* Timer */
+  .timer-box{text-align:center; padding:18px 10px;}
+  .timer-display{font-size:42px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:1px; color:var(--accent); margin-bottom:14px;}
+  .timer-status{font-size:12px; color:var(--muted); margin-top:-8px; margin-bottom:14px;}
+  .btn{
+    width:100%; padding:18px; border:none; border-radius:var(--radius);
+    font-size:17px; font-weight:700; letter-spacing:.3px; cursor:pointer;
+    transition:transform .1s ease, opacity .15s ease; -webkit-appearance:none;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn:disabled{opacity:.35; pointer-events:none;}
+  .btn-start{background:var(--accent); color:#04211a;}
+  .btn-stop{background:var(--danger); color:#fff;}
+  .btn-submit{background:var(--accent); color:#04211a; font-size:18px; padding:20px;}
+  .btn-secondary{background:var(--card2); color:var(--text); border:1px solid var(--border);}
+
+  /* GPS status */
+  .gps-row{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); margin-top:10px; justify-content:center;}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--muted);}
+  .dot.ok{background:var(--accent);}
+  .dot.err{background:var(--danger);}
+
+  /* Chips */
+  .chip-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:6px;}
+  .chip-grid.result{grid-template-columns:repeat(2,1fr);}
+  .chip{
+    padding:12px 4px; text-align:center; border-radius:10px; border:1px solid var(--border);
+    background:var(--card2); font-size:13px; font-weight:600; color:var(--text); cursor:pointer;
+  }
+  .chip.active{background:var(--accent); color:#04211a; border-color:var(--accent);}
+  .chip.active.result-neg{background:var(--danger); color:#fff; border-color:var(--danger);}
+
+  /* Photo */
+  .photo-input{display:none;}
+  .photo-btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:16px; border-radius:12px; border:1.5px dashed var(--border);
+    background:var(--card2); color:var(--muted); font-size:14px; font-weight:600; cursor:pointer;
+  }
+  .photo-btn.filled{border-color:var(--accent); color:var(--accent); border-style:solid;}
+  .photo-preview{margin-top:10px; width:100%; max-height:180px; object-fit:cover; border-radius:10px; display:none;}
+
+  textarea{
+    width:100%; background:var(--card2); border:1px solid var(--border); border-radius:10px;
+    color:var(--text); padding:12px; font-size:14px; resize:vertical; min-height:60px; font-family:inherit;
+  }
+
+  .toast{
+    position:fixed; left:14px; right:14px; bottom:20px; background:var(--accent); color:#04211a;
+    padding:14px 16px; border-radius:12px; font-weight:700; text-align:center; font-size:14px;
+    transform:translateY(150%); transition:transform .25s ease; z-index:50;
+  }
+  .toast.show{transform:translateY(0);}
+  .toast.error{background:var(--danger); color:#fff;}
+
+  .footer-note{text-align:center; font-size:10px; color:#4a4a50; margin-top:18px;}
+</style>
+</head>
+<body>
+
+<h1>Registro de Exame Prático</h1>
+
+<!-- CRONÔMETRO -->
+<div class="card timer-box">
+  <div class="timer-display" id="timerDisplay">00:00:00</div>
+  <div class="timer-status" id="timerStatus">Aguardando início</div>
+  <button class="btn btn-start" id="btnStart">▶ INICIAR EXAME</button>
+  <button class="btn btn-stop" id="btnStop" style="display:none; margin-top:8px;">■ FINALIZAR EXAME</button>
+  <div class="gps-row"><span class="dot" id="gpsDot"></span><span id="gpsText">GPS não capturado</span></div>
+</div>
+
+<!-- DATA -->
+<div class="card">
+  <span class="label">Data do exame</span>
+  <input type="date" id="dataExame" style="width:100%; background:var(--card2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:12px; font-size:14px;">
+</div>
+
+<!-- CATEGORIA -->
+<div class="card">
+  <span class="label">Categoria</span>
+  <div class="chip-grid" id="categoriaGrid">
+    <div class="chip" data-value="A">A</div>
+    <div class="chip" data-value="B">B</div>
+    <div class="chip" data-value="C">C</div>
+    <div class="chip" data-value="D">D</div>
+    <div class="chip" data-value="E">E</div>
+  </div>
+</div>
+
+<!-- RESULTADO -->
+<div class="card">
+  <span class="label">Resultado</span>
+  <div class="chip-grid result" id="resultadoGrid">
+    <div class="chip" data-value="Aprovado">Aprovado</div>
+    <div class="chip" data-value="Reprovado">Reprovado</div>
+    <div class="chip" data-value="Ausente">Ausente</div>
+    <div class="chip" data-value="Interrompido">Interrompido</div>
+    <div class="chip" data-value="Não Iniciado" style="grid-column:span 2;">Não Iniciado</div>
+  </div>
+</div>
+
+<!-- FOTO -->
+<div class="card">
+  <span class="label">Foto do Slip</span>
+  <label class="photo-btn" id="photoBtn" for="photoInput">📷 Tirar foto do Slip</label>
+  <input type="file" id="photoInput" class="photo-input" accept="image/*" capture="environment">
+  <img id="photoPreview" class="photo-preview">
+</div>
+
+<!-- OBSERVAÇÕES -->
+<div class="card">
+  <span class="label">Observações / Motivo <span style="color:#5a5a60;">(opcional — horários de baliza p/ C, D, E)</span></span>
+  <textarea id="observacoes" placeholder="Digite observações..."></textarea>
+</div>
+
+<!-- ENVIAR -->
+<button class="btn btn-submit" id="btnSubmit">ENVIAR REGISTRO</button>
+
+<div class="footer-note">Dados salvos com carimbo do servidor + GPS de auditoria</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ======= CONFIGURAÇÃO =======
+const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyY3_24wIBg9s2KUOc2qhv1rchkbVhQGQTMeImCKb7aM5QiYB_-wuTjqmQiuKFTM6go/exec";
+// =============================
+
+let startTime = null, endTime = null, timerInterval = null;
+let gpsStart = null, gpsEnd = null;
+let categoria = null, resultado = null;
+let fotoBase64 = null;
+
+const timerDisplay = document.getElementById('timerDisplay');
+const timerStatus = document.getElementById('timerStatus');
+const btnStart = document.getElementById('btnStart');
+const btnStop = document.getElementById('btnStop');
+const gpsDot = document.getElementById('gpsDot');
+const gpsText = document.getElementById('gpsText');
+const toast = document.getElementById('toast');
+
+// Data padrão = hoje
+document.getElementById('dataExame').value = new Date().toISOString().split('T')[0];
+
+function pad(n){ return n.toString().padStart(2,'0'); }
+function fmtTime(d){ return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
+
+function updateTimerDisplay(){
+  const now = new Date();
+  const diff = Math.floor((now - startTime)/1000);
+  const h = Math.floor(diff/3600), m = Math.floor((diff%3600)/60), s = diff%60;
+  timerDisplay.textContent = pad(h)+':'+pad(m)+':'+pad(s);
+}
+
+function captureGPS(callback){
+  if(!navigator.geolocation){
+    gpsText.textContent = 'GPS indisponível neste dispositivo';
+    gpsDot.className = 'dot err';
+    callback(null);
+    return;
+  }
+  gpsText.textContent = 'Capturando GPS...';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const coords = pos.coords.latitude.toFixed(6) + ',' + pos.coords.longitude.toFixed(6);
+      gpsDot.className = 'dot ok';
+      gpsText.textContent = 'GPS OK: ' + coords;
+      callback(coords);
+    },
+    err => {
+      gpsDot.className = 'dot err';
+      gpsText.textContent = 'GPS negado/indisponível';
+      callback(null);
+    },
+    { enableHighAccuracy:true, timeout:8000, maximumAge:0 }
+  );
+}
+
+btnStart.addEventListener('click', () => {
+  startTime = new Date();
+  timerStatus.textContent = 'Exame em andamento';
+  btnStart.style.display = 'none';
+  btnStop.style.display = 'block';
+  timerInterval = setInterval(updateTimerDisplay, 1000);
+  captureGPS(coords => { gpsStart = coords; });
+});
+
+btnStop.addEventListener('click', () => {
+  endTime = new Date();
+  clearInterval(timerInterval);
+  timerStatus.textContent = 'Exame finalizado';
+  btnStop.style.display = 'none';
+  captureGPS(coords => { gpsEnd = coords; });
+});
+
+// Chips categoria
+document.querySelectorAll('#categoriaGrid .chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('#categoriaGrid .chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    categoria = chip.dataset.value;
+  });
+});
+
+// Chips resultado
+const negResults = ['Reprovado','Ausente','Interrompido'];
+document.querySelectorAll('#resultadoGrid .chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('#resultadoGrid .chip').forEach(c=>c.classList.remove('active','result-neg'));
+    chip.classList.add('active');
+    if(negResults.includes(chip.dataset.value)) chip.classList.add('result-neg');
+    resultado = chip.dataset.value;
+  });
+});
+
+// Foto
+const photoInput = document.getElementById('photoInput');
+const photoBtn = document.getElementById('photoBtn');
+const photoPreview = document.getElementById('photoPreview');
+
+photoInput.addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    const result = evt.target.result;
+    fotoBase64 = result.split(',')[1]; // remove prefixo data:image/...;base64,
+    photoPreview.src = result;
+    photoPreview.style.display = 'block';
+    photoBtn.textContent = '✅ Foto capturada — toque para trocar';
+    photoBtn.classList.add('filled');
+  };
+  reader.readAsDataURL(file);
+});
+
+function showToast(msg, isError){
+  toast.textContent = msg;
+  toast.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(()=> toast.classList.remove('show'), 3500);
+}
+
+function calcDuracao(){
+  if(!startTime || !endTime) return '';
+  const diff = Math.floor((endTime - startTime)/1000);
+  const h = Math.floor(diff/3600), m = Math.floor((diff%3600)/60), s = diff%60;
+  return pad(h)+':'+pad(m)+':'+pad(s);
+}
+
+document.getElementById('btnSubmit').addEventListener('click', async ()=>{
+  // Validações mínimas
+  if(!startTime){ showToast('Inicie o exame antes de enviar.', true); return; }
+  if(!categoria){ showToast('Selecione a categoria.', true); return; }
+  if(!resultado){ showToast('Selecione o resultado.', true); return; }
+
+  const payload = {
+    dataExame: document.getElementById('dataExame').value,
+    horaInicio: startTime ? fmtTime(startTime) : '',
+    horaFim: endTime ? fmtTime(endTime) : '',
+    duracao: calcDuracao(),
+    categoria: categoria,
+    resultado: resultado,
+    gps: 'Início: ' + (gpsStart || 'N/D') + ' | Fim: ' + (gpsEnd || 'N/D'),
+    observacoes: document.getElementById('observacoes').value,
+    fotoBase64: fotoBase64 || ''
+  };
+
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  try{
+    const resp = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if(data.status === 'success'){
+      showToast('Registro enviado com sucesso ✔');
+      resetForm();
+    } else {
+      showToast('Erro ao enviar: ' + (data.message || 'desconhecido'), true);
+    }
+  } catch(err){
+    showToast('Falha de conexão. Tente novamente.', true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'ENVIAR REGISTRO';
+  }
+});
+
+function resetForm(){
+  startTime = null; endTime = null; gpsStart = null; gpsEnd = null;
+  categoria = null; resultado = null; fotoBase64 = null;
+  clearInterval(timerInterval);
+  timerDisplay.textContent = '00:00:00';
+  timerStatus.textContent = 'Aguardando início';
+  btnStart.style.display = 'block';
+  btnStop.style.display = 'none';
+  gpsDot.className = 'dot';
+  gpsText.textContent = 'GPS não capturado';
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active','result-neg'));
+  document.getElementById('observacoes').value = '';
+  photoPreview.style.display = 'none';
+  photoPreview.src = '';
+  photoInput.value = '';
+  photoBtn.textContent = '📷 Tirar foto do Slip';
+  photoBtn.classList.remove('filled');
+  document.getElementById('dataExame').value = new Date().toISOString().split('T')[0];
+}
+</script>
+</body>
+</html>
