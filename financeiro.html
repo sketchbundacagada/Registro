@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Painel Financeiro</title>
+
+<meta name="theme-color" content="#123324">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Painel Financeiro">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23123324'/%3E%3Crect x='24' y='55' width='14' height='25' fill='%23E8A93B'/%3E%3Crect x='43' y='40' width='14' height='40' fill='%23E8A93B'/%3E%3Crect x='62' y='25' width='14' height='55' fill='%23E8A93B'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23123324'/%3E%3Crect x='24' y='55' width='14' height='25' fill='%23E8A93B'/%3E%3Crect x='43' y='40' width='14' height='40' fill='%23E8A93B'/%3E%3Crect x='62' y='25' width='14' height='55' fill='%23E8A93B'/%3E%3C/svg%3E">
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Painel%20Financeiro%22%2C%22short_name%22%3A%22Financeiro%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23EEF0E6%22%2C%22theme_color%22%3A%22%23123324%22%7D">
+
+<style>
+  :root{
+    --bg:#EEF0E6;
+    --paper:#FFFDF6;
+    --ink:#1B2A20;
+    --ink-soft:#5B6B5F;
+    --forest:#123324;
+    --forest-2:#1B4A34;
+    --gold:#E8A93B;
+    --gold-dark:#C98B1F;
+    --plum:#8B2C56;
+    --teal:#187F72;
+    --clay:#C1571B;
+    --ok:#2F9E58;
+    --warn:#E8792E;
+    --danger:#B02A2A;
+    --danger-bg:#5C1F1F;
+    --line:#DCE0D2;
+    --radius:18px;
+    --shadow:0 4px 14px rgba(18,51,36,0.10);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:env(safe-area-inset-bottom);
+    user-select:none;
+  }
+  #app{max-width:520px; margin:0 auto; min-height:100%;}
+
+  .top-bar{
+    background:var(--forest); color:#F5EFDC;
+    padding:14px 16px 14px 16px; padding-top:calc(14px + env(safe-area-inset-top));
+    display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:20; border-bottom:3px solid var(--gold);
+  }
+  .top-bar h1{font-size:18px; margin:0; font-weight:800;}
+  .top-bar .sub{font-size:11px; color:#B9C9BB; font-weight:500; margin-top:1px;}
+  .badge{display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; padding:7px 11px; border-radius:999px; white-space:nowrap;}
+  .badge.online{background:rgba(47,158,88,0.18); color:#8FE3AA;}
+  .badge.offline{background:rgba(232,121,46,0.2); color:#FFC793;}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+  .badge.online .dot{background:var(--ok); box-shadow:0 0 0 3px rgba(47,158,88,0.25);}
+  .badge.offline .dot{background:var(--warn); box-shadow:0 0 0 3px rgba(232,121,46,0.25); animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%{opacity:1;}50%{opacity:0.4;}100%{opacity:1;}}
+
+  main{padding:16px 14px 24px 14px;}
+  section{display:none;}
+  section.active{display:block; animation:fade .18s ease;}
+  @keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
+
+  h2.title{font-size:15px; text-transform:uppercase; letter-spacing:1.2px; color:var(--ink-soft); font-weight:800; margin:18px 0 10px 2px;}
+  h2.title:first-child{margin-top:4px;}
+
+  .card{background:var(--paper); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; margin-bottom:14px;}
+  .card label{display:block; font-size:11.5px; font-weight:700; text-transform:uppercase; color:var(--ink-soft); letter-spacing:.5px; margin-top:12px;}
+  .card label:first-child{margin-top:0;}
+  .card input{
+    width:100%; font-size:16px; font-weight:600; padding:11px 10px; margin-top:6px;
+    border:2px solid var(--line); border-radius:10px; background:var(--bg); color:var(--ink); font-family:inherit;
+  }
+
+  .chip-row{display:flex; gap:8px; margin-top:6px;}
+  .chip-cat{
+    flex:1; padding:12px 6px; border-radius:12px; border:2px solid var(--line); background:var(--bg);
+    font-weight:800; font-size:13px; text-align:center; cursor:pointer;
+  }
+  .chip-cat.sel[data-cat="Matéria-prima"]{border-color:var(--gold-dark); background:rgba(232,169,59,0.14); color:var(--gold-dark);}
+  .chip-cat.sel[data-cat="Perfumaria"]{border-color:var(--plum); background:rgba(139,44,86,0.1); color:var(--plum);}
+
+  .btn-confirm{
+    width:100%; margin-top:16px; padding:16px; border:none; border-radius:14px; background:var(--gold);
+    color:#2A1B00; font-weight:900; font-size:16px; box-shadow:0 6px 16px rgba(232,169,59,0.4); cursor:pointer;
+  }
+  .btn-confirm:active{transform:scale(0.98);}
+
+  .calc-result{
+    margin-top:14px; text-align:center; padding:14px; border-radius:12px; font-weight:800; font-size:14.5px;
+    background:rgba(24,127,114,0.1); color:var(--teal); line-height:1.4;
+  }
+
+  .btn-sync{width:100%; padding:13px; border:none; border-radius:14px; background:var(--forest); color:#F5EFDC; font-weight:800; font-size:14px; cursor:pointer; margin-bottom:12px;}
+
+  .list-box{background:var(--paper); border-radius:14px; box-shadow:var(--shadow); padding:6px 14px;}
+  .list-row{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:11px 0; border-bottom:1px solid var(--line); font-size:13.5px;}
+  .list-row:last-child{border-bottom:none;}
+  .list-row small{font-size:11px;}
+  .st{font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:8px; white-space:nowrap;}
+  .st-pendente{background:rgba(232,121,46,0.18); color:var(--warn);}
+  .st-sincronizado{background:rgba(47,158,88,0.15); color:var(--ok);}
+  .empty-hint{text-align:center; color:var(--ink-soft); font-size:13px; padding:20px 0;}
+
+  .period-row{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;}
+  .period-chip{
+    padding:12px 4px; border-radius:12px; border:2px solid var(--line); background:var(--paper);
+    font-weight:800; font-size:13.5px; text-align:center; cursor:pointer; color:var(--ink-soft);
+  }
+  .period-chip.active{border-color:var(--forest); background:var(--forest); color:#F5EFDC;}
+
+  .nav-periodo{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px;}
+  .nav-btn{
+    width:38px; height:38px; min-width:38px; border-radius:50%; border:none;
+    background:var(--paper); box-shadow:var(--shadow); font-weight:900; font-size:16px;
+    cursor:pointer; color:var(--forest);
+  }
+  .nav-btn:active{transform:scale(0.92);}
+  .nav-periodo-label{font-weight:800; font-size:15px; text-align:center; flex:1;}
+  .nav-periodo-picker{display:flex; gap:8px; margin-top:8px; align-items:center;}
+  .nav-periodo-picker input{
+    flex:1; padding:9px 8px; border:2px solid var(--line); border-radius:10px;
+    background:var(--paper); font-size:13px; font-weight:700; color:var(--ink); font-family:inherit;
+  }
+  .nav-hoje{padding:9px 14px; border-radius:10px; border:none; background:var(--forest); color:#F5EFDC; font-weight:800; font-size:12.5px; cursor:pointer; white-space:nowrap;}
+
+  .stat-row{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;}
+  .stat-card{background:var(--paper); border-radius:14px; box-shadow:var(--shadow); padding:14px;}
+  .stat-card .label{font-size:11px; font-weight:700; text-transform:uppercase; color:var(--ink-soft); letter-spacing:.5px;}
+  .stat-card .value{font-size:19px; font-weight:900; margin-top:4px;}
+  .stat-card.total{margin-top:10px; padding:16px;}
+  .stat-card.total .label{font-size:11px; text-transform:uppercase; letter-spacing:.5px;}
+  .stat-card.total .value{font-size:26px; margin-top:4px;}
+  .stat-card.lucro-positivo{background:var(--forest);}
+  .stat-card.lucro-positivo .label{color:#B9C9BB;}
+  .stat-card.lucro-positivo .value{color:var(--gold);}
+  .stat-card.lucro-negativo{background:var(--danger-bg);}
+  .stat-card.lucro-negativo .label{color:#E3B8B8;}
+  .stat-card.lucro-negativo .value{color:#FF9B9B;}
+
+  .chart-card{padding:14px 10px 6px 10px;}
+  .chart-legend{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:4px; padding-bottom:6px;}
+  .chart-legend span{font-size:11px; font-weight:700; color:var(--ink-soft); display:flex; align-items:center; gap:5px;}
+  .legend-dot{width:9px; height:9px; border-radius:50%; display:inline-block;}
+
+  .atualizado{text-align:center; font-size:11.5px; color:var(--ink-soft); margin-top:8px;}
+
+  .bottom-tabs{
+    max-width:520px; margin:0 auto;
+    background:var(--paper); border-top:1px solid var(--line);
+    display:flex; padding:8px 8px calc(8px + env(safe-area-inset-bottom)) 8px; gap:6px;
+  }
+  .tab-btn{
+    flex:1; background:none; border:none; padding:8px 4px; border-radius:12px;
+    display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer;
+    color:var(--ink-soft); font-size:11px; font-weight:700;
+  }
+  .tab-btn .ico{font-size:20px;}
+  .tab-btn.active{color:var(--forest); background:rgba(18,51,36,0.06);}
+
+  #toast{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:90px; z-index:60;
+    background:var(--forest); color:#fff; padding:12px 18px; border-radius:12px;
+    font-size:13.5px; font-weight:700; box-shadow:0 6px 18px rgba(0,0,0,0.25);
+    opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease; max-width:80%; text-align:center;
+  }
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="top-bar">
+    <div>
+      <h1>📊 Painel Financeiro</h1>
+      <div class="sub">Custos, lucro e projeções</div>
+    </div>
+    <div class="badge offline" id="connBadge"><span class="dot"></span><span id="connText">Verificando...</span></div>
+  </div>
+
+  <main>
+    <!-- ABA CUSTOS -->
+    <section id="tab-custos" class="active">
+      <h2 class="title">Registrar novo custo</h2>
+      <div class="card">
+        <label>Categoria</label>
+        <div class="chip-row">
+          <button class="chip-cat" data-cat="Matéria-prima" onclick="selecionarCategoria('Matéria-prima')">🌽 Matéria-prima</button>
+          <button class="chip-cat" data-cat="Perfumaria" onclick="selecionarCategoria('Perfumaria')">💄 Perfumaria</button>
+        </div>
+        <label>Item</label>
+        <input type="text" id="inputItem" placeholder="Ex: Milho, Frango, Perfume 100ml">
+        <label>Fornecedor (opcional)</label>
+        <input type="text" id="inputFornecedor" placeholder="Ex: Mercadinho do Zé">
+        <label>Quantidade</label>
+        <input type="text" id="inputQuantidade" placeholder="Ex: 5 kg, 20 un">
+        <label>Valor total (R$)</label>
+        <input type="number" inputmode="decimal" id="inputValor" placeholder="0,00">
+        <label>Data da compra</label>
+        <input type="date" id="inputData">
+        <button class="btn-confirm" onclick="registrarCusto()">Registrar Custo</button>
+      </div>
+
+      <h2 class="title">Calculadora de preço de venda</h2>
+      <div class="card">
+        <label>Custo do produto (R$)</label>
+        <input type="number" inputmode="decimal" id="calcCusto" oninput="calcularPreco()" placeholder="0,00">
+        <label>Margem de lucro desejada (%)</label>
+        <input type="number" inputmode="decimal" id="calcMargem" oninput="calcularPreco()" placeholder="Ex: 50" value="50">
+        <div class="calc-result" id="calcResultado">Preencha o custo para ver o preço sugerido.</div>
+      </div>
+
+      <h2 class="title">Histórico de custos</h2>
+      <button class="btn-sync" onclick="tentarSincronizarCustos(true)">🔄 Sincronizar agora</button>
+      <div class="list-box" id="custosList"><div class="empty-hint">Nenhum custo registrado ainda.</div></div>
+    </section>
+
+    <!-- ABA BALANCETE -->
+    <section id="tab-balancete">
+      <h2 class="title">Período</h2>
+      <div class="period-row">
+        <button class="period-chip active" data-p="diario" onclick="selecionarPeriodo('diario')">Diário</button>
+        <button class="period-chip" data-p="semanal" onclick="selecionarPeriodo('semanal')">Semanal</button>
+        <button class="period-chip" data-p="mensal" onclick="selecionarPeriodo('mensal')">Mensal</button>
+      </div>
+
+      <div class="nav-periodo">
+        <button class="nav-btn" onclick="mudarPeriodoRef(-1)">◀</button>
+        <div class="nav-periodo-label" id="navPeriodoLabel">Hoje</div>
+        <button class="nav-btn" onclick="mudarPeriodoRef(1)">▶</button>
+      </div>
+      <div class="nav-periodo-picker">
+        <input type="date" id="pickerData" onchange="onPickerDataChange()">
+        <input type="month" id="pickerMes" style="display:none" onchange="onPickerMesChange()">
+        <button class="nav-hoje" onclick="irParaHoje()">Hoje</button>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card"><div class="label">Faturamento</div><div class="value" id="balFaturamento">R$ 0,00</div></div>
+        <div class="stat-card"><div class="label">Custos</div><div class="value" id="balCustos">R$ 0,00</div></div>
+      </div>
+      <div class="stat-card total lucro-positivo" id="balLucroCard">
+        <div class="label">Lucro / Prejuízo</div>
+        <div class="value" id="balLucro">R$ 0,00</div>
+      </div>
+
+      <h2 class="title" id="chartTitle">Vendas por forma de pagamento (hoje)</h2>
+      <div class="card chart-card">
+        <svg id="chartSvg" width="100%" viewBox="0 0 300 160" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="chart-legend" id="chartLegend"></div>
+      </div>
+
+      <div class="atualizado" id="atualizadoEm"></div>
+      <button class="btn-sync" style="margin-top:14px;" onclick="carregarDados(true)">🔄 Atualizar dados da planilha</button>
+    </section>
+  </main>
+
+  <nav class="bottom-tabs">
+    <button class="tab-btn active" onclick="trocarAba('custos')"><span class="ico">🧾</span>Custos</button>
+    <button class="tab-btn" onclick="trocarAba('balancete')"><span class="ico">📈</span>Balancete</button>
+  </nav>
+
+  <div id="toast"></div>
+</div>
+
+<script>
+/* =======================================================
+   CONFIGURAÇÃO — mesma URL do Apps Script usada no app de vendas
+   ======================================================= */
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxrv4bgRgv3_LRvfl-2iQ8sEOoEDGUJJjPMyuXL7-Qz9Oqzir9-6h2XmLYbcbXdz7cF/exec";
+
+/* ---------------------- Estado ---------------------- */
+let custos = JSON.parse(localStorage.getItem('financeiro_custos') || '[]');
+let categoriaSelecionada = null;
+let periodoAtual = 'diario';
+let dataRef = null;   // "AAAA-MM-DD" usada para os modos Diário e Semanal
+let mesRef = null;    // {ano, mes} (mes 0-indexado) usado para o modo Mensal
+let dadosCache = JSON.parse(localStorage.getItem('financeiro_cache') || 'null');
+let abaAtiva = 'custos';
+
+/* ---------------------- Utilitários ---------------------- */
+function formatBRL(v){ return (v||0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'}); }
+function mostrarToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2400);
+}
+function salvarCustos(){ localStorage.setItem('financeiro_custos', JSON.stringify(custos)); }
+
+// Converte qualquer data/hora (ISO em UTC) para a "chave do dia" em Manaus (UTC-4), sem depender de bibliotecas.
+function chaveDiaManaus(isoStr){
+  const d = new Date(isoStr);
+  const m = new Date(d.getTime() - 4*60*60*1000);
+  return `${m.getUTCFullYear()}-${String(m.getUTCMonth()+1).padStart(2,'0')}-${String(m.getUTCDate()).padStart(2,'0')}`;
+}
+function hojeManausChave(){ return chaveDiaManaus(new Date().toISOString()); }
+
+function mesAtualManaus(){
+  const m = new Date(new Date().getTime() - 4*60*60*1000);
+  return {ano: m.getUTCFullYear(), mes: m.getUTCMonth()};
+}
+
+function somarDias(chave, delta){
+  const [ano,mes,dia] = chave.split('-').map(Number);
+  const d = new Date(Date.UTC(ano, mes-1, dia));
+  d.setUTCDate(d.getUTCDate() + delta);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+}
+
+function somarMeses(ref, delta){
+  const total = ref.ano*12 + ref.mes + delta;
+  return {ano: Math.floor(total/12), mes: ((total%12)+12)%12};
+}
+
+function nomeDiaSemana(chave){
+  const [ano,mes,dia] = chave.split('-').map(Number);
+  const d = new Date(Date.UTC(ano, mes-1, dia));
+  return ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getUTCDay()];
+}
+
+function formatarDataCurta(chave){
+  const [,mes,dia] = chave.split('-');
+  return `${dia}/${mes}`;
+}
+
+const NOMES_MES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+/* ---------------------- Navegação ---------------------- */
+function trocarAba(aba){
+  abaAtiva = aba;
+  document.getElementById('tab-custos').classList.toggle('active', aba==='custos');
+  document.getElementById('tab-balancete').classList.toggle('active', aba==='balancete');
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active', (aba==='custos' && i===0) || (aba==='balancete' && i===1));
+  });
+  if(aba==='balancete'){
+    if(!dadosCache) carregarDados(false);
+    else atualizarBalancete();
+  }
+}
+
+/* ---------------------- Registrar custo ---------------------- */
+function selecionarCategoria(cat){
+  categoriaSelecionada = cat;
+  document.querySelectorAll('.chip-cat').forEach(c=>{
+    c.classList.toggle('sel', c.dataset.cat === cat);
+  });
+}
+
+function registrarCusto(){
+  if(!categoriaSelecionada){ mostrarToast('Escolha a categoria (Matéria-prima ou Perfumaria).'); return; }
+  const item = document.getElementById('inputItem').value.trim();
+  const fornecedor = document.getElementById('inputFornecedor').value.trim();
+  const quantidade = document.getElementById('inputQuantidade').value.trim();
+  const valor = parseFloat((document.getElementById('inputValor').value || '0').replace(',','.'));
+  const data = document.getElementById('inputData').value || hojeManausChave();
+
+  if(!item){ mostrarToast('Digite o nome do item.'); return; }
+  if(!valor || valor <= 0){ mostrarToast('Digite um valor válido.'); return; }
+
+  const custo = {
+    id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
+    data, categoria: categoriaSelecionada, item, fornecedor, quantidade,
+    valorTotal: valor, status: 'Pendente'
+  };
+  custos.push(custo);
+  salvarCustos();
+  renderCustosList();
+  atualizarBadge();
+
+  document.getElementById('inputItem').value = '';
+  document.getElementById('inputFornecedor').value = '';
+  document.getElementById('inputQuantidade').value = '';
+  document.getElementById('inputValor').value = '';
+  categoriaSelecionada = null;
+  document.querySelectorAll('.chip-cat').forEach(c=>c.classList.remove('sel'));
+  document.getElementById('inputData').value = hojeManausChave();
+
+  mostrarToast('✅ Custo registrado!');
+  tentarSincronizarCustos(false);
+}
+
+function renderCustosList(){
+  const box = document.getElementById('custosList');
+  const lista = custos.slice().reverse();
+  if(lista.length === 0){
+    box.innerHTML = '<div class="empty-hint">Nenhum custo registrado ainda.</div>';
+    return;
+  }
+  box.innerHTML = lista.map(c => `
+    <div class="list-row">
+      <span>${c.categoria==='Perfumaria' ? '💄' : '🌽'} <b>${c.item}</b> — ${formatBRL(c.valorTotal)}<br>
+        <small style="color:var(--ink-soft)">${c.data}${c.fornecedor ? ' · ' + c.fornecedor : ''}</small>
+      </span>
+      <span class="st ${c.status==='Pendente' ? 'st-pendente' : 'st-sincronizado'}">${c.status}</span>
+    </div>
+  `).join('');
+}
+
+/* ---------------------- Calculadora de preço ---------------------- */
+function calcularPreco(){
+  const custo = parseFloat((document.getElementById('calcCusto').value || '0').replace(',','.'));
+  const margem = parseFloat((document.getElementById('calcMargem').value || '0').replace(',','.'));
+  const resultado = document.getElementById('calcResultado');
+  if(!custo || custo <= 0){
+    resultado.textContent = 'Preencha o custo para ver o preço sugerido.';
+    return;
+  }
+  if(isNaN(margem) || margem < 0 || margem >= 100){
+    resultado.textContent = 'Digite uma margem entre 0% e 99%.';
+    return;
+  }
+  const preco = custo / (1 - margem/100);
+  resultado.textContent = `Preço sugerido: ${formatBRL(preco)}  →  lucro de ${formatBRL(preco-custo)} por unidade`;
+}
+
+/* ---------------------- Sincronização de custos ---------------------- */
+async function enviarCusto(custo){
+  const payload = {
+    tipo: 'compra',
+    data: custo.data,
+    categoria: custo.categoria,
+    item: custo.item,
+    fornecedor: custo.fornecedor,
+    quantidade: custo.quantidade,
+    valorTotal: custo.valorTotal,
+    status: 'Sincronizado'
+  };
+  const resp = await fetch(GOOGLE_SCRIPT_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain;charset=utf-8'},
+    body: JSON.stringify(payload)
+  });
+  if(!resp.ok) throw new Error('Falha no envio');
+  return resp.json().catch(()=>({ok:true}));
+}
+
+async function tentarSincronizarCustos(manual){
+  if(!navigator.onLine){
+    atualizarBadge();
+    if(manual) mostrarToast('Sem internet no momento. O custo fica guardado no celular.');
+    return;
+  }
+  const pendentes = custos.filter(c => c.status === 'Pendente');
+  if(pendentes.length === 0){
+    atualizarBadge();
+    if(manual) mostrarToast('Tudo certo, nada pendente. ✅');
+    return;
+  }
+  if(manual) mostrarToast(`Sincronizando ${pendentes.length} custo(s)...`);
+  let sucesso = 0;
+  for(const c of pendentes){
+    try{ await enviarCusto(c); c.status = 'Sincronizado'; sucesso++; }
+    catch(e){ if(!navigator.onLine) break; }
+  }
+  salvarCustos();
+  renderCustosList();
+  atualizarBadge();
+  if(manual){
+    if(sucesso === pendentes.length) mostrarToast('✅ Todos os custos foram sincronizados!');
+    else mostrarToast(`${sucesso} de ${pendentes.length} sincronizados.`);
+  }
+}
+
+function atualizarBadge(){
+  const badge = document.getElementById('connBadge');
+  const txt = document.getElementById('connText');
+  const pendentes = custos.filter(c => c.status === 'Pendente').length;
+  if(navigator.onLine && pendentes === 0){ badge.className = 'badge online'; txt.textContent = 'Online'; }
+  else if(navigator.onLine && pendentes > 0){ badge.className = 'badge offline'; txt.textContent = `Sincronizando... ${pendentes} pendente(s)`; }
+  else { badge.className = 'badge offline'; txt.textContent = `Offline — ${pendentes} pendente(s)`; }
+}
+
+/* ---------------------- Buscar dados da planilha (Vendas + Compras) ---------------------- */
+async function carregarDados(manual){
+  if(!navigator.onLine){
+    if(manual) mostrarToast('Sem internet — mostrando os últimos dados salvos.');
+    aplicarDadosCache();
+    return;
+  }
+  try{
+    if(manual) mostrarToast('Atualizando dados da planilha...');
+    const resp = await fetch(GOOGLE_SCRIPT_URL);
+    const json = await resp.json();
+    dadosCache = { vendas: json.vendas || [], compras: json.compras || [], atualizadoEm: new Date().toISOString() };
+    localStorage.setItem('financeiro_cache', JSON.stringify(dadosCache));
+    aplicarDadosCache();
+    if(manual) mostrarToast('✅ Dados atualizados!');
+  }catch(erro){
+    if(manual) mostrarToast('Não consegui atualizar agora. Tente novamente.');
+    aplicarDadosCache();
+  }
+}
+
+function aplicarDadosCache(){
+  if(!dadosCache){
+    document.getElementById('atualizadoEm').textContent = 'Nenhum dado carregado ainda. Toque em "Atualizar dados".';
+    return;
+  }
+  document.getElementById('atualizadoEm').textContent = `Atualizado em ${new Date(dadosCache.atualizadoEm).toLocaleString('pt-BR')}`;
+  atualizarBalancete();
+}
+
+/* ---------------------- Cálculo do balancete por período ---------------------- */
+function janelaDias(fimChave, n){
+  const dias = [];
+  for(let i = n-1; i >= 0; i--){
+    const chave = somarDias(fimChave, -i);
+    dias.push({chave, label: nomeDiaSemana(chave)});
+  }
+  return dias;
+}
+
+function semanasDoMes(ano, mes){
+  const ultimoDiaDoMes = new Date(Date.UTC(ano, mes+1, 0)).getUTCDate();
+  const atual = mesAtualManaus();
+  const hojeDia = new Date(new Date().getTime() - 4*60*60*1000).getUTCDate();
+  const diaLimite = (ano === atual.ano && mes === atual.mes) ? hojeDia : ultimoDiaDoMes;
+
+  const semanas = [];
+  let inicioDia = 1, numero = 1;
+  while(inicioDia <= diaLimite){
+    const fimDia = Math.min(inicioDia + 6, diaLimite);
+    semanas.push({
+      label: `Sem ${numero}`,
+      inicio: `${ano}-${String(mes+1).padStart(2,'0')}-${String(inicioDia).padStart(2,'0')}`,
+      fim: `${ano}-${String(mes+1).padStart(2,'0')}-${String(fimDia).padStart(2,'0')}`
+    });
+    inicioDia = fimDia + 1;
+    numero++;
+  }
+  return semanas;
+}
+
+function selecionarPeriodo(p){
+  periodoAtual = p;
+  document.querySelectorAll('.period-chip').forEach(c => c.classList.toggle('active', c.dataset.p === p));
+  document.getElementById('pickerData').style.display = (p === 'mensal') ? 'none' : 'block';
+  document.getElementById('pickerMes').style.display = (p === 'mensal') ? 'block' : 'none';
+  atualizarNavLabel();
+  atualizarBalancete();
+}
+
+function mudarPeriodoRef(delta){
+  if(periodoAtual === 'diario'){ dataRef = somarDias(dataRef, delta); }
+  else if(periodoAtual === 'semanal'){ dataRef = somarDias(dataRef, delta*7); }
+  else { mesRef = somarMeses(mesRef, delta); }
+  sincronizarPickers();
+  atualizarNavLabel();
+  atualizarBalancete();
+}
+
+function irParaHoje(){
+  dataRef = hojeManausChave();
+  mesRef = mesAtualManaus();
+  sincronizarPickers();
+  atualizarNavLabel();
+  atualizarBalancete();
+}
+
+function onPickerDataChange(){
+  const v = document.getElementById('pickerData').value;
+  if(v){ dataRef = v; atualizarNavLabel(); atualizarBalancete(); }
+}
+
+function onPickerMesChange(){
+  const v = document.getElementById('pickerMes').value; // "AAAA-MM"
+  if(v){
+    const [ano,mes] = v.split('-').map(Number);
+    mesRef = {ano, mes: mes-1};
+    atualizarNavLabel();
+    atualizarBalancete();
+  }
+}
+
+function sincronizarPickers(){
+  document.getElementById('pickerData').value = dataRef;
+  document.getElementById('pickerMes').value = `${mesRef.ano}-${String(mesRef.mes+1).padStart(2,'0')}`;
+}
+
+function atualizarNavLabel(){
+  const label = document.getElementById('navPeriodoLabel');
+  if(periodoAtual === 'diario'){
+    label.textContent = (dataRef === hojeManausChave()) ? `Hoje — ${formatarDataCurta(dataRef)}` : formatarDataCurta(dataRef) + `/${dataRef.slice(0,4)}`;
+  } else if(periodoAtual === 'semanal'){
+    const inicio = somarDias(dataRef, -6);
+    label.textContent = `${formatarDataCurta(inicio)} a ${formatarDataCurta(dataRef)}`;
+  } else {
+    label.textContent = `${NOMES_MES[mesRef.mes]}/${mesRef.ano}`;
+  }
+}
+
+function renderTotais(totalV, totalC){
+  const lucro = totalV - totalC;
+  document.getElementById('balFaturamento').textContent = formatBRL(totalV);
+  document.getElementById('balCustos').textContent = formatBRL(totalC);
+  document.getElementById('balLucro').textContent = formatBRL(lucro);
+  const card = document.getElementById('balLucroCard');
+  card.classList.remove('lucro-positivo','lucro-negativo');
+  card.classList.add(lucro >= 0 ? 'lucro-positivo' : 'lucro-negativo');
+}
+
+function atualizarBalancete(){
+  if(!dadosCache) return;
+  const vendas = dadosCache.vendas || [];
+  const compras = dadosCache.compras || [];
+
+  if(periodoAtual === 'diario'){
+    const diaChave = dataRef;
+    const vFiltradas = vendas.filter(v => chaveDiaManaus(v.dataHora) === diaChave);
+    const cFiltradas = compras.filter(c => c.data === diaChave);
+    const totalV = vFiltradas.reduce((s,v)=>s+v.total,0);
+    const totalC = cFiltradas.reduce((s,c)=>s+c.valorTotal,0);
+    renderTotais(totalV, totalC);
+    renderGraficoPagamento(vFiltradas, diaChave);
+
+  } else if(periodoAtual === 'semanal'){
+    const dias = janelaDias(dataRef, 7);
+    const porDia = dias.map(d => {
+      const v = vendas.filter(x => chaveDiaManaus(x.dataHora) === d.chave).reduce((s,x)=>s+x.total,0);
+      const c = compras.filter(x => x.data === d.chave).reduce((s,x)=>s+x.valorTotal,0);
+      return {label: d.label, vendas: v, custos: c, lucro: v - c};
+    });
+    renderTotais(porDia.reduce((s,d)=>s+d.vendas,0), porDia.reduce((s,d)=>s+d.custos,0));
+    document.getElementById('chartTitle').textContent = `Lucro por dia (${formatarDataCurta(somarDias(dataRef,-6))} a ${formatarDataCurta(dataRef)})`;
+    renderGraficoBarras(porDia.map(d => ({label: d.label, valor: d.lucro})));
+
+  } else {
+    const semanas = semanasDoMes(mesRef.ano, mesRef.mes);
+    const porSemana = semanas.map(s => {
+      const v = vendas.filter(x => { const k = chaveDiaManaus(x.dataHora); return k >= s.inicio && k <= s.fim; }).reduce((sum,x)=>sum+x.total,0);
+      const c = compras.filter(x => x.data >= s.inicio && x.data <= s.fim).reduce((sum,x)=>sum+x.valorTotal,0);
+      return {label: s.label, vendas: v, custos: c, lucro: v - c};
+    });
+    renderTotais(porSemana.reduce((s,d)=>s+d.vendas,0), porSemana.reduce((s,d)=>s+d.custos,0));
+    document.getElementById('chartTitle').textContent = `Lucro por semana (${NOMES_MES[mesRef.mes]}/${mesRef.ano})`;
+    renderGraficoBarras(porSemana.map(d => ({label: d.label, valor: d.lucro})));
+  }
+}
+
+/* ---------------------- Gráficos (SVG nativo, sem bibliotecas) ---------------------- */
+function renderGraficoPagamento(vendasFiltradas, diaChave){
+  document.getElementById('chartTitle').textContent = `Vendas por forma de pagamento (${formatarDataCurta(diaChave)})`;
+  const formas = ['Pix','Dinheiro','Cartão de Crédito','Cartão de Débito'];
+  const cores  = ['#187F72','#C98B1F','#8B2C56','#C1571B'];
+  const dados = formas.map((f,i) => ({
+    label: f.replace('Cartão de ',''),
+    valor: vendasFiltradas.filter(v => v.forma === f).reduce((s,v)=>s+v.total,0),
+    cor: cores[i]
+  }));
+  renderGraficoBarras(dados, true);
+}
+
+function renderGraficoBarras(dados, coresFixas){
+  const svg = document.getElementById('chartSvg');
+  const legend = document.getElementById('chartLegend');
+  svg.innerHTML = '';
+  legend.innerHTML = '';
+
+  const temValor = dados.some(d => Math.abs(d.valor) > 0.001);
+  if(!dados.length || !temValor){
+    svg.innerHTML = '<text x="150" y="84" text-anchor="middle" font-size="12" fill="#5B6B5F">Sem dados suficientes para este período.</text>';
+    return;
+  }
+
+  const largura = 300, altura = 160, margemBaixo = 26, margemTopo = 12;
+  const maxAbs = Math.max(1, ...dados.map(d => Math.abs(d.valor)));
+  const temNegativo = dados.some(d => d.valor < 0);
+  const alturaUtil = altura - margemTopo - margemBaixo;
+  const baseY = temNegativo ? margemTopo + alturaUtil/2 : altura - margemBaixo;
+  const escalaMax = temNegativo ? alturaUtil/2 : alturaUtil;
+
+  const espaco = (largura - 20) / dados.length;
+  const larguraBarra = espaco * 0.55;
+
+  let svgHtml = `<line x1="6" y1="${baseY}" x2="${largura-6}" y2="${baseY}" stroke="#DCE0D2" stroke-width="1"/>`;
+
+  dados.forEach((d,i) => {
+    const x = 10 + i*espaco + (espaco - larguraBarra)/2;
+    const alturaBarra = (Math.abs(d.valor)/maxAbs) * escalaMax;
+    const y = d.valor >= 0 ? baseY - alturaBarra : baseY;
+    const cor = coresFixas ? d.cor : (d.valor >= 0 ? '#2F9E58' : '#B02A2A');
+    svgHtml += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${larguraBarra.toFixed(1)}" height="${Math.max(alturaBarra,1).toFixed(1)}" rx="3" fill="${cor}"></rect>`;
+    svgHtml += `<text x="${(x+larguraBarra/2).toFixed(1)}" y="${altura-8}" text-anchor="middle" font-size="9" fill="#5B6B5F">${d.label}</text>`;
+  });
+  svg.innerHTML = svgHtml;
+
+  legend.innerHTML = dados.map(d => {
+    const cor = coresFixas ? d.cor : (d.valor >= 0 ? '#2F9E58' : '#B02A2A');
+    return `<span><span class="legend-dot" style="background:${cor}"></span>${d.label}: ${formatBRL(d.valor)}</span>`;
+  }).join('');
+}
+
+/* ---------------------- Ciclo de vida ---------------------- */
+window.addEventListener('online', () => { atualizarBadge(); tentarSincronizarCustos(false); carregarDados(false); });
+window.addEventListener('offline', atualizarBadge);
+
+function init(){
+  dataRef = hojeManausChave();
+  mesRef = mesAtualManaus();
+  sincronizarPickers();
+  atualizarNavLabel();
+
+  document.getElementById('inputData').value = hojeManausChave();
+  renderCustosList();
+  atualizarBadge();
+  calcularPreco();
+
+  if(dadosCache) aplicarDadosCache();
+  if(navigator.onLine){
+    tentarSincronizarCustos(false);
+    carregarDados(false);
+  }
+
+  if('serviceWorker' in navigator){
+    const swCode = `
+      self.addEventListener('install', e => self.skipWaiting());
+      self.addEventListener('activate', e => self.clients.claim());
+      self.addEventListener('fetch', e => {
+        e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+      });
+    `;
+    const blob = new Blob([swCode], {type:'application/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+  }
+}
+init();
+</script>
+</body>
+</html>
