@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Registro de Exame</title>
+<style>
+  :root{
+    --bg:#0a0a0c;
+    --card:#151518;
+    --card2:#1d1d21;
+    --border:#2a2a2e;
+    --text:#e8e8ea;
+    --muted:#8a8a90;
+    --accent:#2dd4a7;
+    --accent-dark:#1a8f70;
+    --danger:#e5484d;
+    --warn:#e5a04d;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-user-select:none; user-select:none;
+  }
+  body{padding:14px 14px 40px; min-height:100vh;}
+  h1{font-size:16px; font-weight:600; color:var(--muted); text-align:center; margin:4px 0 16px; letter-spacing:.5px; text-transform:uppercase;}
+
+  .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-bottom:12px;}
+  .label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; margin-bottom:8px; display:block;}
+
+  /* Timer */
+  .timer-box{text-align:center; padding:18px 10px;}
+  .timer-display{font-size:42px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:1px; color:var(--accent); margin-bottom:14px;}
+  .timer-status{font-size:12px; color:var(--muted); margin-top:-8px; margin-bottom:14px;}
+  .btn{
+    width:100%; padding:18px; border:none; border-radius:var(--radius);
+    font-size:17px; font-weight:700; letter-spacing:.3px; cursor:pointer;
+    transition:transform .1s ease, opacity .15s ease; -webkit-appearance:none;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn:disabled{opacity:.35; pointer-events:none;}
+  .btn-start{background:var(--accent); color:#04211a;}
+  .btn-stop{background:var(--danger); color:#fff;}
+  .btn-submit{background:var(--accent); color:#04211a; font-size:18px; padding:20px;}
+  .btn-secondary{background:var(--card2); color:var(--text); border:1px solid var(--border);}
+
+  /* GPS status */
+  .gps-row{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); margin-top:10px; justify-content:center;}
+  .clock-row{display:flex; gap:8px; justify-content:center; margin-top:12px; flex-wrap:wrap;}
+  .clock-chip{
+    background:var(--card2); border:1px solid var(--border); border-radius:10px;
+    padding:8px 14px; text-align:center; min-width:110px;
+  }
+  .clock-chip .clock-label{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px;}
+  .clock-chip .clock-value{font-size:20px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; margin-top:2px;}
+  .clock-chip.fim .clock-value{color:var(--accent);}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--muted);}
+  .dot.ok{background:var(--accent);}
+  .dot.err{background:var(--danger);}
+
+  /* Chips */
+  .chip-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:6px;}
+  .chip-grid.result{grid-template-columns:repeat(2,1fr);}
+  .chip{
+    padding:12px 4px; text-align:center; border-radius:10px; border:1px solid var(--border);
+    background:var(--card2); font-size:13px; font-weight:600; color:var(--text); cursor:pointer;
+  }
+  .chip.active{background:var(--accent); color:#04211a; border-color:var(--accent);}
+  .chip.active.result-neg{background:var(--danger); color:#fff; border-color:var(--danger);}
+
+  /* Photo */
+  .photo-input{display:none;}
+  .photo-btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:16px; border-radius:12px; border:1.5px dashed var(--border);
+    background:var(--card2); color:var(--muted); font-size:14px; font-weight:600; cursor:pointer;
+  }
+  .photo-btn.filled{border-color:var(--accent); color:var(--accent); border-style:solid;}
+  .photo-preview{margin-top:10px; width:100%; max-height:180px; object-fit:cover; border-radius:10px; display:none;}
+
+  textarea{
+    width:100%; background:var(--card2); border:1px solid var(--border); border-radius:10px;
+    color:var(--text); padding:12px; font-size:14px; resize:vertical; min-height:60px; font-family:inherit;
+  }
+
+  .toast{
+    position:fixed; left:14px; right:14px; bottom:20px; background:var(--accent); color:#04211a;
+    padding:14px 16px; border-radius:12px; font-weight:700; text-align:center; font-size:14px;
+    transform:translateY(150%); transition:transform .25s ease; z-index:50;
+  }
+  .toast.show{transform:translateY(0);}
+  .toast.error{background:var(--danger); color:#fff;}
+
+  .footer-note{text-align:center; font-size:10px; color:#4a4a50; margin-top:18px;}
+</style>
+</head>
+<body>
+
+<h1>Registro de Exame Prático</h1>
+
+<!-- FILA PENDENTE -->
+<div class="card" id="filaCard" style="display:none; text-align:center; border-color:var(--warn);">
+  <span id="filaTexto" style="font-size:13px; color:var(--warn); font-weight:600;"></span>
+  <button class="btn btn-secondary" id="btnEnviarFila" style="margin-top:10px; padding:12px; font-size:14px;">🔄 Tentar enviar agora</button>
+</div>
+
+<!-- CRONÔMETRO -->
+<div class="card timer-box">
+  <div class="timer-display" id="timerDisplay">00:00:00</div>
+  <div class="timer-status" id="timerStatus">Aguardando início</div>
+  <button class="btn btn-start" id="btnStart">▶ INICIAR EXAME</button>
+  <button class="btn btn-stop" id="btnStop" style="display:none; margin-top:8px;">■ FINALIZAR EXAME</button>
+  <div class="clock-row" id="clockRow" style="display:none;">
+    <div class="clock-chip inicio">
+      <div class="clock-label">Início</div>
+      <div class="clock-value" id="horaInicioDisplay">--:--</div>
+    </div>
+    <div class="clock-chip fim" id="clockChipFim" style="display:none;">
+      <div class="clock-label">Fim</div>
+      <div class="clock-value" id="horaFimDisplay">--:--</div>
+    </div>
+  </div>
+  <div class="gps-row"><span class="dot" id="gpsDot"></span><span id="gpsText">GPS não capturado</span></div>
+</div>
+
+<!-- DATA -->
+<div class="card">
+  <span class="label">Data do exame</span>
+  <input type="date" id="dataExame" style="width:100%; background:var(--card2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:12px; font-size:14px;">
+</div>
+
+<!-- CATEGORIA -->
+<div class="card">
+  <span class="label">Categoria</span>
+  <div class="chip-grid" id="categoriaGrid">
+    <div class="chip" data-value="A">A</div>
+    <div class="chip" data-value="B">B</div>
+    <div class="chip" data-value="C">C</div>
+    <div class="chip" data-value="D">D</div>
+    <div class="chip" data-value="E">E</div>
+  </div>
+</div>
+
+<!-- RESULTADO -->
+<div class="card">
+  <span class="label">Resultado</span>
+  <div class="chip-grid result" id="resultadoGrid">
+    <div class="chip" data-value="Aprovado">Aprovado</div>
+    <div class="chip" data-value="Reprovado">Reprovado</div>
+    <div class="chip" data-value="Ausente">Ausente</div>
+    <div class="chip" data-value="Interrompido">Interrompido</div>
+    <div class="chip" data-value="Não Iniciado" style="grid-column:span 2;">Não Iniciado</div>
+  </div>
+</div>
+
+<!-- FOTO -->
+<div class="card">
+  <span class="label">Foto do Slip</span>
+  <label class="photo-btn" id="photoBtn" for="photoInput">📷 Tirar foto do Slip</label>
+  <input type="file" id="photoInput" class="photo-input" accept="image/*" capture="environment">
+  <img id="photoPreview" class="photo-preview">
+</div>
+
+<!-- OBSERVAÇÕES -->
+<div class="card">
+  <span class="label">Observações / Motivo <span style="color:#5a5a60;">(opcional — horários de baliza p/ C, D, E)</span></span>
+  <textarea id="observacoes" placeholder="Digite observações..."></textarea>
+</div>
+
+<!-- ENVIAR -->
+<button class="btn btn-submit" id="btnSubmit">ENVIAR REGISTRO</button>
+
+<div class="footer-note">Dados salvos com carimbo do servidor + GPS de auditoria</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ======= CONFIGURAÇÃO =======
+const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyY3_24wIBg9s2KUOc2qhv1rchkbVhQGQTMeImCKb7aM5QiYB_-wuTjqmQiuKFTM6go/exec";
+// =============================
+
+let startTime = null, endTime = null, timerInterval = null;
+let gpsStart = null, gpsEnd = null;
+let categoria = null, resultado = null;
+let fotoBase64 = null;
+let trajetoPontos = []; // [{lat, lng, t}, ...] capturados durante o exame
+let trajetoInterval = null;
+
+const STORAGE_KEY = 'exame_em_andamento';
+const INTERVALO_TRAJETO_MS = 30000; // captura um ponto a cada 30 segundos
+
+function salvarProgresso(){
+  if(!startTime) { localStorage.removeItem(STORAGE_KEY); return; }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    startTime: startTime.getTime(),
+    gpsStart: gpsStart,
+    dataExame: document.getElementById('dataExame').value,
+    trajetoPontos: trajetoPontos,
+    fotoBase64: fotoBase64,
+    categoria: categoria,
+    resultado: resultado,
+    observacoes: document.getElementById('observacoes').value
+  }));
+}
+
+function restaurarProgresso(){
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if(!saved) return;
+  try{
+    const st = JSON.parse(saved);
+    startTime = new Date(st.startTime);
+    gpsStart = st.gpsStart;
+    trajetoPontos = st.trajetoPontos || [];
+    document.getElementById('dataExame').value = st.dataExame;
+    timerStatus.textContent = 'Exame em andamento (retomado)';
+    btnStart.style.display = 'none';
+    btnStop.style.display = 'block';
+    clockRow.style.display = 'flex';
+    clockChipFim.style.display = 'none';
+    horaInicioDisplay.textContent = fmtHM(startTime);
+    if(gpsStart){
+      gpsDot.className = 'dot ok';
+      gpsText.textContent = 'GPS OK: ' + gpsStart;
+    }
+
+    // Restaura a foto, se havia uma tirada antes de fechar a tela
+    if(st.fotoBase64){
+      fotoBase64 = st.fotoBase64;
+      photoPreview.src = 'data:image/jpeg;base64,' + fotoBase64;
+      photoPreview.style.display = 'block';
+      photoBtn.textContent = '✅ Foto capturada — toque para trocar';
+      photoBtn.classList.add('filled');
+    }
+
+    // Restaura a categoria selecionada
+    if(st.categoria){
+      categoria = st.categoria;
+      document.querySelectorAll('#categoriaGrid .chip').forEach(c=>{
+        c.classList.toggle('active', c.dataset.value === categoria);
+      });
+    }
+
+    // Restaura o resultado selecionado
+    if(st.resultado){
+      resultado = st.resultado;
+      document.querySelectorAll('#resultadoGrid .chip').forEach(c=>{
+        const ativo = c.dataset.value === resultado;
+        c.classList.toggle('active', ativo);
+        c.classList.toggle('result-neg', ativo && negResults.includes(resultado));
+      });
+    }
+
+    // Restaura o texto de observações
+    if(st.observacoes){
+      document.getElementById('observacoes').value = st.observacoes;
+    }
+
+    timerInterval = setInterval(updateTimerDisplay, 1000);
+    trajetoInterval = setInterval(capturarPontoTrajeto, INTERVALO_TRAJETO_MS);
+    updateTimerDisplay();
+    showToast('Exame em andamento foi recuperado ✔');
+  }catch(e){
+    localStorage.removeItem(STORAGE_KEY);
+  }
+}
+
+const timerDisplay = document.getElementById('timerDisplay');
+const timerStatus = document.getElementById('timerStatus');
+const clockRow = document.getElementById('clockRow');
+const clockChipFim = document.getElementById('clockChipFim');
+const horaInicioDisplay = document.getElementById('horaInicioDisplay');
+const horaFimDisplay = document.getElementById('horaFimDisplay');
+const btnStart = document.getElementById('btnStart');
+const btnStop = document.getElementById('btnStop');
+const gpsDot = document.getElementById('gpsDot');
+const gpsText = document.getElementById('gpsText');
+const toast = document.getElementById('toast');
+
+// Data padrão = hoje
+document.getElementById('dataExame').value = new Date().toISOString().split('T')[0];
+
+function pad(n){ return n.toString().padStart(2,'0'); }
+function fmtTime(d){ return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
+function fmtHM(d){ return pad(d.getHours())+':'+pad(d.getMinutes()); }
+
+function updateTimerDisplay(){
+  const now = new Date();
+  const diff = Math.floor((now - startTime)/1000);
+  const h = Math.floor(diff/3600), m = Math.floor((diff%3600)/60), s = diff%60;
+  timerDisplay.textContent = pad(h)+':'+pad(m)+':'+pad(s);
+}
+
+function captureGPS(callback){
+  if(!navigator.geolocation){
+    gpsText.textContent = 'GPS indisponível neste dispositivo';
+    gpsDot.className = 'dot err';
+    callback(null);
+    return;
+  }
+  gpsText.textContent = 'Capturando GPS...';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const coords = pos.coords.latitude.toFixed(6) + ',' + pos.coords.longitude.toFixed(6);
+      gpsDot.className = 'dot ok';
+      gpsText.textContent = 'GPS OK: ' + coords;
+      callback(coords);
+    },
+    err => {
+      gpsDot.className = 'dot err';
+      gpsText.textContent = 'GPS negado/indisponível';
+      callback(null);
+    },
+    { enableHighAccuracy:true, timeout:8000, maximumAge:0 }
+  );
+}
+
+// Captura um ponto de GPS silenciosamente (sem mexer no status na tela)
+// e adiciona ao trajeto do exame em andamento.
+function capturarPontoTrajeto(){
+  if(!navigator.geolocation || !startTime) return;
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      trajetoPontos.push({
+        lat: +pos.coords.latitude.toFixed(6),
+        lng: +pos.coords.longitude.toFixed(6),
+        t: fmtTime(new Date())
+      });
+      salvarProgresso();
+    },
+    () => { /* falha silenciosa: só pula esse ponto, não interrompe o exame */ },
+    { enableHighAccuracy:true, timeout:8000, maximumAge:0 }
+  );
+}
+
+btnStart.addEventListener('click', () => {
+  startTime = new Date();
+  timerStatus.textContent = 'Exame em andamento';
+  btnStart.style.display = 'none';
+  btnStop.style.display = 'block';
+  clockRow.style.display = 'flex';
+  clockChipFim.style.display = 'none';
+  horaInicioDisplay.textContent = fmtHM(startTime);
+  timerInterval = setInterval(updateTimerDisplay, 1000);
+  trajetoInterval = setInterval(capturarPontoTrajeto, INTERVALO_TRAJETO_MS);
+  salvarProgresso(); // já salva com o horário, mesmo antes do GPS responder
+  captureGPS(coords => {
+    gpsStart = coords;
+    trajetoPontos.push({ lat:+coords.split(',')[0], lng:+coords.split(',')[1], t: fmtTime(startTime) });
+    salvarProgresso();
+  });
+});
+
+btnStop.addEventListener('click', () => {
+  endTime = new Date();
+  clearInterval(timerInterval);
+  clearInterval(trajetoInterval);
+  timerStatus.textContent = 'Exame finalizado';
+  btnStop.style.display = 'none';
+  clockChipFim.style.display = 'block';
+  horaFimDisplay.textContent = fmtHM(endTime);
+  localStorage.removeItem(STORAGE_KEY); // exame já finalizado, não precisa mais retomar
+  captureGPS(coords => {
+    gpsEnd = coords;
+    trajetoPontos.push({ lat:+coords.split(',')[0], lng:+coords.split(',')[1], t: fmtTime(endTime) });
+  });
+});
+
+// Monta um link do Google Maps passando por todos os pontos capturados.
+// Limita a ~23 pontos no link (limite prático do Maps) — se houver mais,
+// distribui os pontos igualmente ao longo do trajeto para não perder o formato geral.
+function montarLinkTrajeto(){
+  if(trajetoPontos.length === 0) return '';
+  let pontos = trajetoPontos;
+  const LIMITE = 23;
+  if(pontos.length > LIMITE){
+    const passo = (pontos.length - 1) / (LIMITE - 1);
+    pontos = Array.from({length: LIMITE}, (_, i) => trajetoPontos[Math.round(i * passo)]);
+  }
+  const partes = pontos.map(p => p.lat + ',' + p.lng);
+  return 'https://www.google.com/maps/dir/' + partes.join('/');
+}
+
+// Monta uma string compacta com todas as coordenadas brutas (para auditoria),
+// sem limite de pontos — vai inteira para a planilha, mesmo que o link do mapa seja resumido.
+function montarTrajetoBruto(){
+  return trajetoPontos.map(p => p.t + ' ' + p.lat + ',' + p.lng).join(' | ');
+}
+
+// Chips categoria
+document.querySelectorAll('#categoriaGrid .chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('#categoriaGrid .chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    categoria = chip.dataset.value;
+    salvarProgresso();
+  });
+});
+
+// Chips resultado
+const negResults = ['Reprovado','Ausente','Interrompido'];
+document.querySelectorAll('#resultadoGrid .chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('#resultadoGrid .chip').forEach(c=>c.classList.remove('active','result-neg'));
+    chip.classList.add('active');
+    if(negResults.includes(chip.dataset.value)) chip.classList.add('result-neg');
+    resultado = chip.dataset.value;
+    salvarProgresso();
+  });
+});
+
+// Foto
+const photoInput = document.getElementById('photoInput');
+const photoBtn = document.getElementById('photoBtn');
+const photoPreview = document.getElementById('photoPreview');
+
+photoInput.addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  photoBtn.textContent = '⏳ Processando foto...';
+  comprimirImagem(file, (dataUrl)=>{
+    fotoBase64 = dataUrl.split(',')[1]; // remove prefixo data:image/...;base64,
+    photoPreview.src = dataUrl;
+    photoPreview.style.display = 'block';
+    photoBtn.textContent = '✅ Foto capturada — toque para trocar';
+    photoBtn.classList.add('filled');
+    salvarProgresso();
+  });
+});
+
+// Reduz o tamanho da foto (máx. 1280px de largura, qualidade 70%) antes de
+// guardar em Base64 — assim ocupa menos espaço no celular e menos dados móveis no envio.
+function comprimirImagem(file, callback){
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const maxW = 1280;
+      let w = img.width, h = img.height;
+      if(w > maxW){ h = Math.round(h * maxW / w); w = maxW; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      callback(canvas.toDataURL('image/jpeg', 0.7));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ======= FILA DE ENVIO OFFLINE =======
+const FILA_KEY = 'exame_fila_pendente';
+
+function getFila(){
+  try{ return JSON.parse(localStorage.getItem(FILA_KEY)) || []; }
+  catch(e){ return []; }
+}
+
+function salvarNaFila(payload){
+  const fila = getFila();
+  payload._id = Date.now() + '_' + Math.random().toString(36).slice(2,8);
+  fila.push(payload);
+  localStorage.setItem(FILA_KEY, JSON.stringify(fila));
+  atualizarCardFila();
+}
+
+function removerDaFila(id){
+  const fila = getFila().filter(item => item._id !== id);
+  localStorage.setItem(FILA_KEY, JSON.stringify(fila));
+  atualizarCardFila();
+}
+
+function atualizarCardFila(){
+  const fila = getFila();
+  const filaCard = document.getElementById('filaCard');
+  const filaTexto = document.getElementById('filaTexto');
+  if(fila.length === 0){
+    filaCard.style.display = 'none';
+  } else {
+    filaCard.style.display = 'block';
+    filaTexto.textContent = `📦 ${fila.length} registro(s) salvo(s) no celular aguardando envio`;
+  }
+}
+
+async function enviarUm(payload){
+  const resp = await fetch(WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  });
+  const data = await resp.json();
+  if(data.status !== 'success') throw new Error(data.message || 'Erro desconhecido');
+  return data;
+}
+
+async function tentarEnviarFila(silencioso){
+  const fila = getFila();
+  if(fila.length === 0) return;
+  const btnFila = document.getElementById('btnEnviarFila');
+  if(btnFila){ btnFila.disabled = true; btnFila.textContent = 'Enviando...'; }
+
+  let enviados = 0;
+  for(const item of fila){
+    try{
+      await enviarUm(item);
+      removerDaFila(item._id);
+      enviados++;
+    }catch(err){
+      // Sem internet ou erro — para e tenta o resto depois
+      break;
+    }
+  }
+
+  if(btnFila){ btnFila.disabled = false; btnFila.textContent = '🔄 Tentar enviar agora'; }
+
+  if(enviados > 0){
+    showToast(enviados + ' registro(s) pendente(s) enviado(s) com sucesso ✔');
+  } else if(!silencioso && fila.length > 0){
+    showToast('Ainda sem conexão. Vai tentar de novo mais tarde.', true);
+  }
+}
+
+document.getElementById('btnEnviarFila').addEventListener('click', ()=> tentarEnviarFila(false));
+
+// Tenta enviar sozinho ao abrir o app e sempre que a conexão voltar
+window.addEventListener('online', ()=> tentarEnviarFila(true));
+window.addEventListener('load', ()=> { atualizarCardFila(); tentarEnviarFila(true); });
+// ======================================
+
+function showToast(msg, isError){
+  toast.textContent = msg;
+  toast.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(()=> toast.classList.remove('show'), 3500);
+}
+
+function calcDuracao(){
+  if(!startTime || !endTime) return '';
+  const diff = Math.floor((endTime - startTime)/1000);
+  const h = Math.floor(diff/3600), m = Math.floor((diff%3600)/60), s = diff%60;
+  return pad(h)+':'+pad(m)+':'+pad(s);
+}
+
+document.getElementById('btnSubmit').addEventListener('click', async ()=>{
+  // Validações mínimas
+  if(!startTime){ showToast('Inicie o exame antes de enviar.', true); return; }
+  if(!categoria){ showToast('Selecione a categoria.', true); return; }
+  if(!resultado){ showToast('Selecione o resultado.', true); return; }
+
+  const payload = {
+    dataExame: document.getElementById('dataExame').value,
+    horaInicio: startTime ? fmtTime(startTime) : '',
+    horaFim: endTime ? fmtTime(endTime) : '',
+    duracao: calcDuracao(),
+    categoria: categoria,
+    resultado: resultado,
+    gps: 'Início: ' + (gpsStart || 'N/D') + ' | Fim: ' + (gpsEnd || 'N/D'),
+    observacoes: document.getElementById('observacoes').value,
+    fotoBase64: fotoBase64 || '',
+    trajetoUrl: montarLinkTrajeto(),
+    trajetoBruto: montarTrajetoBruto()
+  };
+
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  try{
+    await enviarUm(payload);
+    showToast('Registro enviado com sucesso ✔');
+    resetForm();
+  } catch(err){
+    // Sem internet (ou wifi/dados desligado): guarda tudo no celular para enviar depois
+    salvarNaFila(payload);
+    showToast('Sem internet agora. Registro salvo no celular e será enviado quando você tiver wifi/dados ✔');
+    resetForm();
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'ENVIAR REGISTRO';
+  }
+});
+
+function resetForm(){
+  localStorage.removeItem(STORAGE_KEY);
+  startTime = null; endTime = null; gpsStart = null; gpsEnd = null;
+  categoria = null; resultado = null; fotoBase64 = null;
+  trajetoPontos = [];
+  clearInterval(timerInterval);
+  clearInterval(trajetoInterval);
+  timerDisplay.textContent = '00:00:00';
+  timerStatus.textContent = 'Aguardando início';
+  btnStart.style.display = 'block';
+  btnStop.style.display = 'none';
+  clockRow.style.display = 'none';
+  clockChipFim.style.display = 'none';
+  horaInicioDisplay.textContent = '--:--';
+  horaFimDisplay.textContent = '--:--';
+  gpsDot.className = 'dot';
+  gpsText.textContent = 'GPS não capturado';
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active','result-neg'));
+  document.getElementById('observacoes').value = '';
+  photoPreview.style.display = 'none';
+  photoPreview.src = '';
+  photoInput.value = '';
+  photoBtn.textContent = '📷 Tirar foto do Slip';
+  photoBtn.classList.remove('filled');
+  document.getElementById('dataExame').value = new Date().toISOString().split('T')[0];
+}
+
+// Salva o progresso a cada alteração no campo de observações
+document.getElementById('observacoes').addEventListener('input', salvarProgresso);
+
+// Recupera um exame em andamento, caso a tela tenha sido fechada/apagada.
+// Fica no final do arquivo de propósito: só roda depois que todos os
+// elementos (foto, chips, observações) já foram declarados acima.
+restaurarProgresso();
+</script>
+</body>
+</html>
