@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0c">
 <title>Registro de Exame</title>
 <style>
   :root{
@@ -669,6 +671,16 @@ document.getElementById('btnLimparTudo').addEventListener('click', () => {
   showToast('Todos os dados foram apagados ✔');
 });
 // ===========================================
+
+// Registra o service worker que permite o app abrir sem nenhuma internet
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {
+      // Falha silenciosa: se não conseguir registrar, o app continua
+      // funcionando normalmente, só sem o recurso de abrir 100% offline
+    });
+  });
+}
 
 // Recupera um exame em andamento, caso a tela tenha sido fechada/apagada.
 // Fica no final do arquivo de propósito: só roda depois que todos os
